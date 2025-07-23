@@ -4,14 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import textwrap
 from models import UrgencyEnum, ImportanceEnum, TimeFrameEnum
-from typing import Optional
-import streamlit as st
-import requests
-import pandas as pd
-import matplotlib.pyplot as plt
-import textwrap
-from models import UrgencyEnum, ImportanceEnum, TimeFrameEnum
-from typing import Optional
+from typing import Optional, List
 import uvicorn
 from main import app as fastapi_app
 import threading
@@ -19,12 +12,15 @@ import threading
 # --- Configuration ---
 API_BASE_URL = "http://127.0.0.1:8000"  # Replace with your FastAPI backend URL
 
-def run_fastapi():
-    uvicorn.run(fastapi_app, host= "0.0.0.0", port=8000)
 
-daemon = threading.Thread(target=run_fastapi, daemon=True, name="FastAPI")
-daemon.start()
+try:
+    def run_fastapi():
+        uvicorn.run(fastapi_app, host= "127.0.0.1", port=8000)
 
+    daemon = threading.Thread(target=run_fastapi, daemon=True, name="FastAPI")
+    daemon.start()
+except:
+    print("Server is already running")
 
 
 
@@ -192,16 +188,40 @@ def plot_task_matrix(tasks):
         ax.spines['bottom'].set_visible(False)
         ax.spines['left'].set_visible(False)
 
-    plt.tight_layout(rect=[0, 0, 1, 0.96])  #type:ignore
+    plt.tight_layout(rect=[0, 0, 1, 0.96])
     return fig
 
+def sort_and_filter_tasks(tasks: List[dict], urgency_filter: str, importance_filter: str) -> List[dict]:
+    """Filters and sorts tasks based on urgency and importance."""
+    
+    # Filter tasks
+    filtered_tasks = tasks
+    if urgency_filter != "All":
+        filtered_tasks = [t for t in filtered_tasks if t['urgency'] == urgency_filter]
+    if importance_filter != "All":
+        filtered_tasks = [t for t in filtered_tasks if t['importance'] == importance_filter]
 
+    # Define the sort order
+    sort_order = {
+        ('urgent', 'important'): 0,
+        ('urgent', 'not_important'): 1,
+        ('not_urgent', 'important'): 2,
+        ('not_urgent', 'not_important'): 3
+    }
+    
+    # Sort tasks
+    sorted_tasks = sorted(
+        filtered_tasks, 
+        key=lambda t: sort_order.get((t['urgency'], t['importance']), 4)
+    )
+    
+    return sorted_tasks
 
 
 # --- Streamlit UI ---
 st.set_page_config(page_title="Task Manager", layout="wide")
 
-st.title("Task Manager")
+st.title("Task Manager by Abdul Ahad Rauf")
 
 # --- Authentication ---
 if "token" not in st.session_state:
@@ -241,11 +261,10 @@ if "token" not in st.session_state:
                 else:
                     new_user = register_user(new_username, new_email, new_password)
                     if new_user:
-                        # st.success("Registration successful! Please login.")
                         token_data = login_user(new_username, new_password)
                         if token_data:
                             st.session_state["token"] = token_data["access_token"]
-                            st.session_state["username"] = username
+                            st.session_state["username"] = new_username
                             st.success("Logged in successfully!")
                             st.rerun()
 
@@ -277,7 +296,7 @@ else:
 
             if submit_button:
                  if not all([title, description, urgency, importance, time_frame]):
-                     st.warning("Please fill out all fields.")
+                       st.warning("Please fill out all fields.")
                  else:
                     new_task = create_task(title, description, urgency, importance, time_frame)
                     if new_task:
@@ -287,10 +306,21 @@ else:
 
     with active_tab:
         st.header("Your Active Tasks")
-        if not active_tasks:
-            st.info("You have no active tasks. Create one below!")
+
+        # --- Filter Controls ---
+        filter_col1, filter_col2 = st.columns(2)
+        with filter_col1:
+            urgency_filter = st.selectbox("Filter by Urgency", ["All"] + [e.value for e in UrgencyEnum])
+        with filter_col2:
+            importance_filter = st.selectbox("Filter by Importance", ["All"] + [e.value for e in ImportanceEnum])
+
+        # --- Sort and display tasks ---
+        sorted_filtered_tasks = sort_and_filter_tasks(active_tasks, urgency_filter, importance_filter)
+
+        if not sorted_filtered_tasks:
+            st.info("No tasks match the current filters.")
         else:
-            for task in active_tasks:
+            for task in sorted_filtered_tasks:
                 with st.expander(f"**{task['title']}** | {' '.join(task['urgency'].split('_')).title()} | {' '.join(task['importance'].split('_')).title()}"):
                     st.write(task['description'])
                     st.write(f"Time Frame: {task['time_frame']}")
@@ -352,4 +382,3 @@ else:
                     if st.button("Restore Task", key=f"restore_{task['id']}"):
                         update_task(task['id'], {"completed": False})
                         st.rerun()
-
