@@ -5,9 +5,28 @@ import matplotlib.pyplot as plt
 import textwrap
 from models import UrgencyEnum, ImportanceEnum, TimeFrameEnum
 from typing import Optional
+import streamlit as st
+import requests
+import pandas as pd
+import matplotlib.pyplot as plt
+import textwrap
+from models import UrgencyEnum, ImportanceEnum, TimeFrameEnum
+from typing import Optional
+import uvicorn
+from main import app as fastapi_app
+import threading
 
 # --- Configuration ---
 API_BASE_URL = "http://127.0.0.1:8000"  # Replace with your FastAPI backend URL
+
+def run_fastapi():
+    uvicorn.run(fastapi_app, host= "0.0.0.0", port=8000)
+
+daemon = threading.Thread(target=run_fastapi, daemon=True, name="FastAPI")
+daemon.start()
+
+
+
 
 # --- Helper Functions ---
 def get_auth_headers():
@@ -173,7 +192,7 @@ def plot_task_matrix(tasks):
         ax.spines['bottom'].set_visible(False)
         ax.spines['left'].set_visible(False)
 
-    plt.tight_layout(rect=[0, 0, 1, 0.96])
+    plt.tight_layout(rect=[0, 0, 1, 0.96])  #type:ignore
     return fig
 
 # --- Streamlit UI ---
