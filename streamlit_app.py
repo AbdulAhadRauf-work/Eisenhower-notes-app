@@ -251,7 +251,26 @@ else:
 
     active_tasks = get_tasks(completed=False)
     
-    active_tab, matrix_tab, history_tab = st.tabs(["Active Tasks", "Task Matrix", "History"])
+    create_a_task, active_tab, matrix_tab, history_tab = st.tabs(["Create a Task", "Active Tasks", "Task Matrix", "History"])
+    with create_a_task:
+        st.header("Create New Task")
+        with st.form("new_task_form", clear_on_submit=True):
+            title = st.text_input("Title").strip().title()
+            description = st.text_area("Description").strip().title()
+            urgency = st.selectbox("Urgency", options=[e.value for e in UrgencyEnum])
+            importance = st.selectbox("Importance", options=[e.value for e in ImportanceEnum])
+            time_frame = st.selectbox("Time Frame", options=[e.value for e in TimeFrameEnum])
+            submit_button = st.form_submit_button("Create Task")
+
+            if submit_button:
+                 if not all([title, description, urgency, importance, time_frame]):
+                     st.warning("Please fill out all fields.")
+                 else:
+                    new_task = create_task(title, description, urgency, importance, time_frame)
+                    if new_task:
+                        st.success("Task created successfully!")
+                        st.rerun()
+
 
     with active_tab:
         st.header("Your Active Tasks")
@@ -297,23 +316,7 @@ else:
                                 st.success("Task updated successfully!")
                                 st.rerun()
 
-        st.header("Create New Task")
-        with st.form("new_task_form", clear_on_submit=True):
-            title = st.text_input("Title")
-            description = st.text_area("Description")
-            urgency = st.selectbox("Urgency", options=[e.value for e in UrgencyEnum])
-            importance = st.selectbox("Importance", options=[e.value for e in ImportanceEnum])
-            time_frame = st.selectbox("Time Frame", options=[e.value for e in TimeFrameEnum])
-            submit_button = st.form_submit_button("Create Task")
-
-            if submit_button:
-                 if not all([title, description, urgency, importance, time_frame]):
-                     st.warning("Please fill out all fields.")
-                 else:
-                    new_task = create_task(title, description, urgency, importance, time_frame)
-                    if new_task:
-                        st.success("Task created successfully!")
-                        st.rerun()
+        
 
     with matrix_tab:
         st.header("Active Task Visualization")
