@@ -10,3 +10,5 @@ pandas
 matplotlib
 apscheduler
 python-multipart
+email-validator
+pydantic[all]
