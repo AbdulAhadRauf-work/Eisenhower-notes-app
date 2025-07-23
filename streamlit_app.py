@@ -195,6 +195,9 @@ def plot_task_matrix(tasks):
     plt.tight_layout(rect=[0, 0, 1, 0.96])  #type:ignore
     return fig
 
+
+
+
 # --- Streamlit UI ---
 st.set_page_config(page_title="Task Manager", layout="wide")
 
@@ -202,8 +205,8 @@ st.title("Task Manager")
 
 # --- Authentication ---
 if "token" not in st.session_state:
-    st.sidebar.title("Authentication")
-    auth_tab, register_tab = st.sidebar.tabs(["Login", "Register"])
+    st.title("Authentication")
+    auth_tab, register_tab = st.tabs(["Login", "Register"])
 
     with auth_tab:
         st.subheader("Login")
@@ -238,16 +241,26 @@ if "token" not in st.session_state:
                 else:
                     new_user = register_user(new_username, new_email, new_password)
                     if new_user:
-                        st.success("Registration successful! Please login.")
+                        # st.success("Registration successful! Please login.")
+                        token_data = login_user(new_username, new_password)
+                        if token_data:
+                            st.session_state["token"] = token_data["access_token"]
+                            st.session_state["username"] = username
+                            st.success("Logged in successfully!")
+                            st.rerun()
 
 
 else:
     # --- Main Application ---
-    st.sidebar.title(f"Welcome, {st.session_state['username']}!")
-    if st.sidebar.button("Logout"):
-        del st.session_state["token"]
-        del st.session_state["username"]
-        st.rerun()
+
+    a,b, = st.columns([0.7,0.05])
+    with a:
+        st.title(f"Welcome, {st.session_state['username']}!")
+    with b:
+        if st.button("Logout"):
+            del st.session_state["token"]
+            del st.session_state["username"]
+            st.rerun()
 
     active_tasks = get_tasks(completed=False)
     
