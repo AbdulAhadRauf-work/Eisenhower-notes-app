@@ -27,8 +27,12 @@ def startup_event():
     """
     Start the scheduler when the application starts.
     """
-    scheduler.start()
-    print("Scheduler started...")
+    try:
+        scheduler.start()
+        print("Scheduler started...")
+    except Exception as e:
+        print("App already started")
+
 
 @app.on_event("shutdown")
 def shutdown_event():
